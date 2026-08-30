@@ -1,0 +1,17 @@
+{
+  "name": "forge-layer",
+  "version": "1.3.0",
+  "private": true,
+  "description": "Forge Layer — public AI-versus-human authenticity dispute registry on GenLayer.",
+  "license": "MIT",
+  "scripts": {
+    "qa": "bash scripts/start-qa.sh",
+    "test": "python3 -m unittest discover -s tests -v"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pm2": "^7.0.4"
+  }
+}

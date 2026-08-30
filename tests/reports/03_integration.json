@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "test_health_and_config (test_http.HttpTests)",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "test_list_and_stats (test_http.HttpTests)",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "test_non_owner_pause_rejected (test_http.HttpTests)",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "test_self_challenge_http (test_http.HttpTests)",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "test_submit_challenge_resolve_flow (test_http.HttpTests)",
+      "ok": true,
+      "detail": "ok"
+    }
+  ],
+  "log": "\ntest_health_and_config (test_http.HttpTests) ... ok\ntest_list_and_stats (test_http.HttpTests) ... ok\ntest_non_owner_pause_rejected (test_http.HttpTests) ... ok\ntest_self_challenge_http (test_http.HttpTests) ... ok\ntest_submit_challenge_resolve_flow (test_http.HttpTests) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 10.873s\n\nOK\n"
+}

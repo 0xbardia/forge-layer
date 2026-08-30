@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "desktop + mobile shell",
+      "ok": true,
+      "detail": "browser-smoke"
+    },
+    {
+      "name": "form validation",
+      "ok": true,
+      "detail": "submit page"
+    },
+    {
+      "name": "empty/loading/error states",
+      "ok": true,
+      "detail": "registry + docket"
+    }
+  ],
+  "notes": "Filled in after Chromium smoke."
+}

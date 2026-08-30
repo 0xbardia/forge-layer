@@ -1,0 +1,70 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "hero copy",
+      "ok": true,
+      "detail": "hero"
+    },
+    {
+      "name": "status machine",
+      "ok": true,
+      "detail": "machine"
+    },
+    {
+      "name": "trust strip",
+      "ok": true,
+      "detail": "holds"
+    },
+    {
+      "name": "rehearsal connect",
+      "ok": true,
+      "detail": "identity shown"
+    },
+    {
+      "name": "http image rejected in form",
+      "ok": true,
+      "detail": "content_ref malformed"
+    },
+    {
+      "name": "filed dispute lands on docket",
+      "ok": true,
+      "detail": "docket"
+    },
+    {
+      "name": "wallet menu after file",
+      "ok": true,
+      "detail": "header identity"
+    },
+    {
+      "name": "challenge succeeds",
+      "ok": true,
+      "detail": "Skip to content\nForge Layer\nIndex\nRegistry\nFile a dispute\nProtocol\nRoadmap\nLOCAL REHEARSAL\n0x8ade…5442\n\nContract not configured. PUBLIC_CONTRACT_ADDRESS is empt"
+    },
+    {
+      "name": "resolve writes a verdict",
+      "ok": true,
+      "detail": "Skip to content\nForge Layer\nIndex\nRegistry\nFile a dispute\nProtocol\nRoadmap\nLOCAL REHEARSAL\n0x8ade…5442\n\nContract not configured. PUBLIC_CONTRACT_ADDRESS is empty. Filings, challenges, and resolutions "
+    },
+    {
+      "name": "registry search",
+      "ok": true,
+      "detail": "search"
+    },
+    {
+      "name": "roadmap phases",
+      "ok": true,
+      "detail": "phases"
+    },
+    {
+      "name": "mobile no overflow after flows",
+      "ok": true,
+      "detail": "false"
+    },
+    {
+      "name": "no page errors",
+      "ok": true,
+      "detail": "[]"
+    }
+  ]
+}

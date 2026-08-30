@@ -1,0 +1,31 @@
+name: Bug
+description: Something in the contract, server, or frontend is wrong.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options: [contract, frontend, server, tests, docs]
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Steps, docket id, revert string. Never paste a private key.
+    validations:
+      required: true

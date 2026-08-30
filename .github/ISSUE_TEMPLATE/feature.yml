@@ -1,0 +1,19 @@
+name: Proposal
+description: A protocol or product change.
+title: "[proposal] "
+labels: ["proposal"]
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What user or validator pain does this remove?
+    validations:
+      required: true
+  - type: textarea
+    id: onchain
+    attributes:
+      label: On-chain vs off-chain
+      description: Does this belong in ForgeLayer.py, or is it a client concern?
+    validations:
+      required: true

@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "wrong-network banner path exists in UI",
+      "ok": true,
+      "detail": "frontend"
+    },
+    {
+      "name": "signature rejection surfaces message",
+      "ok": true,
+      "detail": "parseRevert"
+    },
+    {
+      "name": "rehearsal identity persist",
+      "ok": true,
+      "detail": "localStorage identities"
+    }
+  ],
+  "notes": "On-chain wallet cases require MetaMask; rehearsal identities cover the preview."
+}

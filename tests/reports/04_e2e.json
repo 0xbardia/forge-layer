@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "connect\u2192submit\u2192challenge\u2192resolve",
+      "ok": true,
+      "detail": "HTTP journey"
+    }
+  ],
+  "log": "\ntest_submit_challenge_resolve_flow (test_http.HttpTests) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 7.596s\n\nOK\n",
+  "notes": "Wallet UI journey is covered by Chromium tests against the live preview."
+}

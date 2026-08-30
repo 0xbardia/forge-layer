@@ -1,0 +1,3 @@
+# Python 3.10+ standard library only.
+# sqlite3, http.server, json, urllib.parse — no pip packages required to run
+# server/main.py or the unit tests.

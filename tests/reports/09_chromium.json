@@ -1,0 +1,73 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "home renders Forge Layer",
+      "ok": true,
+      "detail": "Forge Layer\nIndex\nRegistry\nFile a dispute\nProtocol\nRoadmap\nLOCAL REHEARSAL\nEnter the forge\nContract not configured. PUBL"
+    },
+    {
+      "name": "home shows contract-not-configured or live chip",
+      "ok": true,
+      "detail": "banner/chip"
+    },
+    {
+      "name": "landing has citation specimen",
+      "ok": true,
+      "detail": "specimen"
+    },
+    {
+      "name": "landing has trust properties",
+      "ok": true,
+      "detail": "holds"
+    },
+    {
+      "name": "landing has roadmap rail",
+      "ok": true,
+      "detail": "roadmap"
+    },
+    {
+      "name": "registry lists dockets",
+      "ok": true,
+      "detail": "docket ids or registry heading"
+    },
+    {
+      "name": "submit form",
+      "ok": true,
+      "detail": "form visible"
+    },
+    {
+      "name": "roadmap page",
+      "ok": true,
+      "detail": "roadmap copy"
+    },
+    {
+      "name": "protocol page",
+      "ok": true,
+      "detail": "mechanism copy"
+    },
+    {
+      "name": "docket detail centerpiece",
+      "ok": true,
+      "detail": "Forge Layer\nIndex\nRegistry\nFile a dispute\nProtocol\nRoadmap\nLOCAL REHEARSAL\nEnter"
+    },
+    {
+      "name": "mobile no overflow",
+      "ok": true,
+      "detail": "false"
+    },
+    {
+      "name": "no unexpected console errors",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "no failed network on core paths",
+      "ok": true,
+      "detail": "{\"failedNet\":[],\"notFound\":[]}"
+    }
+  ],
+  "console": [],
+  "failedNet": [],
+  "url": "http://127.0.0.1:54179/"
+}

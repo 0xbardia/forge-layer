@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "functional",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "database",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "integration",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "security",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "e2e",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "wallet",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "uiux",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "build",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "chromium",
+      "ok": true,
+      "detail": "PASS"
+    }
+  ],
+  "notes": "Re-run of the suite after any fix. Failures: none"
+}

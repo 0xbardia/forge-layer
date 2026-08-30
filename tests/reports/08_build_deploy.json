@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "production build artifact",
+      "ok": true,
+      "detail": "frontend/out/index.html"
+    }
+  ],
+  "notes": "Full PM2 bring-up is scripts/start-qa.sh. See 08_build_deploy.md for the recorded deploy."
+}

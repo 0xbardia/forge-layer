@@ -1,0 +1,13 @@
+[project]
+name = "forge-layer"
+version = "1.3.0"
+description = "Forge Layer — public AI-versus-human authenticity dispute registry on GenLayer."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+# The rehearsal server uses the Python standard library only
+# (http.server, sqlite3, json, urllib). No pip packages required.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
