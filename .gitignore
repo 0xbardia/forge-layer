@@ -15,12 +15,10 @@ logs/
 *.sqlite
 *.sqlite-*
 *.log
-
 # secrets — never commit
 .env
 .env.*
 !.env.example
-
 # python
 __pycache__/
 .pytest_cache/
@@ -29,12 +27,15 @@ venv/
 *.egg-info/
 .coverage
 .mypy_cache/
-
 # editors / os
 .DS_Store
 .idea/
 .vscode/
 *.swp
-
 # local server config (not part of the public app)
 ecosystem.config.cjs
+node_modules
+.next
+out
+tsconfig.tsbuildinfo
+.next/cache

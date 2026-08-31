@@ -1,21 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "installCommand": "cd frontend && npm install",
-  "outputDirectory": "frontend/out",
+  "buildCommand": "npm run build",
+  "outputDirectory": "out",
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://94.156.237.122:7392/api/:path*" },
+    { "source": "/config", "destination": "https://94.156.237.122:7392/config" },
+    { "source": "/health", "destination": "https://94.156.237.122:7392/health" }
+  ],
+  "headers": [
     {
-      "source": "/api/:path*",
-      "destination": "https://94.156.237.122:7392/api/:path*"
-    },
-    {
-      "source": "/config",
-      "destination": "https://94.156.237.122:7392/config"
-    },
-    {
-      "source": "/health",
-      "destination": "https://94.156.237.122:7392/health"
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
     }
   ]
 }
