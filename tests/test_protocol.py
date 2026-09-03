@@ -102,7 +102,9 @@ class ProtocolTests(unittest.TestCase):
         self.r.accelerate(OWNER, d["id"])
         out = self.r.resolve_dispute(B, d["id"])
         self.assertEqual(out["status"], "EXPIRED_UNCHALLENGED")
-        self.assertEqual(out["verdict"], "human_made")
+        # v1.4.0: unchallenged expiry is recorded as ``unadjudicated``
+        # rather than echoing the submitter's initial claim.
+        self.assertEqual(out["verdict"], "unadjudicated")
 
     def test_resolve_before_deadline_open(self):
         d = self.r.submit_dispute(A, "text", "hello world", "human_made", STAKE)

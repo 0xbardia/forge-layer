@@ -7,6 +7,6 @@
       "detail": "HTTP journey"
     }
   ],
-  "log": "\ntest_submit_challenge_resolve_flow (test_http.HttpTests) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 7.596s\n\nOK\n",
+  "log": "\ntest_submit_challenge_resolve_flow (test_http.HttpTests.test_submit_challenge_resolve_flow) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.744s\n\nOK\n",
   "notes": "Wallet UI journey is covered by Chromium tests against the live preview."
 }

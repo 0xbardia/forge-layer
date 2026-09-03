@@ -2,25 +2,25 @@
   "status": "PASS",
   "cases": [
     {
-      "name": "test_crud_and_integrity (test_database.DatabaseTests)",
+      "name": "test_crud_and_integrity (test_database.DatabaseTests.test_crud_and_integrity)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_migrate_from_empty (test_database.DatabaseTests)",
+      "name": "test_migrate_from_empty (test_database.DatabaseTests.test_migrate_from_empty)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_migrate_from_populated_v1 (test_database.DatabaseTests)",
+      "name": "test_migrate_from_populated_v1 (test_database.DatabaseTests.test_migrate_from_populated_v1)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_reset_then_migrate (test_database.DatabaseTests)",
+      "name": "test_reset_then_migrate (test_database.DatabaseTests.test_reset_then_migrate)",
       "ok": true,
       "detail": "ok"
     }
   ],
-  "log": "\ntest_crud_and_integrity (test_database.DatabaseTests) ... ok\ntest_migrate_from_empty (test_database.DatabaseTests) ... ok\ntest_migrate_from_populated_v1 (test_database.DatabaseTests) ... ok\ntest_reset_then_migrate (test_database.DatabaseTests) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.022s\n\nOK\n"
+  "log": "\ntest_crud_and_integrity (test_database.DatabaseTests.test_crud_and_integrity) ... ok\ntest_migrate_from_empty (test_database.DatabaseTests.test_migrate_from_empty) ... ok\ntest_migrate_from_populated_v1 (test_database.DatabaseTests.test_migrate_from_populated_v1) ... ok\ntest_reset_then_migrate (test_database.DatabaseTests.test_reset_then_migrate) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.009s\n\nOK\n"
 }

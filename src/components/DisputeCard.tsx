@@ -18,6 +18,18 @@ function TypeMark({ kind }: { kind: "image" | "text" }) {
   );
 }
 
+/**
+ * Expiry-aware verdict label. The registry list never credits the
+ * submitter's initial claim for an unchallenged expiry: it must read
+ * "Unadjudicated" rather than be styled as a victory.
+ */
+function CardVerdict({ dispute }: { dispute: Dispute }) {
+  if (dispute.status === "EXPIRED_UNCHALLENGED" || dispute.verdict === "unadjudicated") {
+    return <VerdictMark verdict="unadjudicated" />;
+  }
+  return <VerdictMark verdict={dispute.verdict} />;
+}
+
 export function DisputeCard({ dispute }: { dispute: Dispute }) {
   const excerpt =
     dispute.content_type === "text"
@@ -41,7 +53,7 @@ export function DisputeCard({ dispute }: { dispute: Dispute }) {
         <div>
           <dt>Verdict</dt>
           <dd>
-            <VerdictMark verdict={dispute.verdict} />
+            <CardVerdict dispute={dispute} />
           </dd>
         </div>
         <div>

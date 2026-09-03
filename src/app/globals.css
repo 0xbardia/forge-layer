@@ -551,6 +551,17 @@ img {
   color: var(--muted);
 }
 
+.verdict-unadjudicated {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .filter-chip {
   min-height: 2.5rem;
   border-radius: 999px;

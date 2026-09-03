@@ -2,30 +2,25 @@
   "status": "PASS",
   "cases": [
     {
-      "name": "test_health_and_config (test_http.HttpTests)",
+      "name": "test_health_and_config (test_http.HttpTests.test_health_and_config)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_list_and_stats (test_http.HttpTests)",
+      "name": "test_list_and_stats (test_http.HttpTests.test_list_and_stats)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_non_owner_pause_rejected (test_http.HttpTests)",
+      "name": "test_self_challenge_http (test_http.HttpTests.test_self_challenge_http)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_self_challenge_http (test_http.HttpTests)",
-      "ok": true,
-      "detail": "ok"
-    },
-    {
-      "name": "test_submit_challenge_resolve_flow (test_http.HttpTests)",
+      "name": "test_submit_challenge_resolve_flow (test_http.HttpTests.test_submit_challenge_resolve_flow)",
       "ok": true,
       "detail": "ok"
     }
   ],
-  "log": "\ntest_health_and_config (test_http.HttpTests) ... ok\ntest_list_and_stats (test_http.HttpTests) ... ok\ntest_non_owner_pause_rejected (test_http.HttpTests) ... ok\ntest_self_challenge_http (test_http.HttpTests) ... ok\ntest_submit_challenge_resolve_flow (test_http.HttpTests) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 10.873s\n\nOK\n"
+  "log": "\ntest_health_and_config (test_http.HttpTests.test_health_and_config) ... ok\ntest_list_and_stats (test_http.HttpTests.test_list_and_stats) ... ok\ntest_non_owner_pause_rejected (test_http.HttpTests.test_non_owner_pause_rejected) ... /usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>\n  _warnings.warn(self.warn_message, ResourceWarning)\nok\ntest_self_challenge_http (test_http.HttpTests.test_self_challenge_http) ... ok\ntest_submit_challenge_resolve_flow (test_http.HttpTests.test_submit_challenge_resolve_flow) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.757s\n\nOK\n<sys>:0: ResourceWarning: unclosed file <_io.BufferedReader name=6>\n<sys>:0: ResourceWarning: unclosed file <_io.BufferedReader name=4>\n"
 }

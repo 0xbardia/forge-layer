@@ -73,6 +73,32 @@ class ContractSourceTests(unittest.TestCase):
         self.assertIn("except Exception:", self.src)
         self.assertIn("VERDICT_INCONCLUSIVE", self.src)
 
+    def test_unadjudicated_verdict(self):
+        # v1.4.0: unchallenged expiry must record ``unadjudicated`` as
+        # the verdict rather than echoing the submitter's initial
+        # claim. The contract surfaces this through the constant
+        # VERDICT_UNADJUDICATED and exposes it in the protocol-info
+        # endpoint.
+        self.assertIn("VERDICT_UNADJUDICATED = ", self.src)
+        self.assertIn('"unadjudicated"', self.src)
+        self.assertIn("self.verdict[dispute_id] = VERDICT_UNADJUDICATED", self.src)
+        # Validators may only emit the three standard rulings —
+        # unadjudicated is reserved for unchallenged expiries.
+        self.assertIn(
+            "if verdict not in (CLAIM_AI, CLAIM_HUMAN, VERDICT_INCONCLUSIVE):",
+            self.src,
+        )
+
+    def test_submit_returns_id(self):
+        # v1.4.0: submit_dispute must return the freshly assigned
+        # integer docket id directly from the receipt so clients do
+        # not race a next_id view against an unaccepted transaction.
+        self.assertRegex(
+            self.src,
+            r"def submit_dispute\([^)]*\)\s*->\s*u256",
+        )
+        self.assertIn("return dispute_id", self.src)
+
     def test_host_policy_hardened(self):
         self.assertIn("nip.io", self.src)
         self.assertIn("0x", self.src)
@@ -87,7 +113,7 @@ class ContractSourceTests(unittest.TestCase):
         self.assertNotRegex(self.src, re.compile(r"^import time", re.M))
 
     def test_version(self):
-        self.assertIn('PROTOCOL_VERSION = "1.3.0"', self.src)
+        self.assertIn('PROTOCOL_VERSION = "1.4.0"', self.src)
 
 
 if __name__ == "__main__":

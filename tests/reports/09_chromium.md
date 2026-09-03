@@ -1,36 +1,31 @@
-# Chromium Report
+# 09 Chromium Report
 
-Status: **PASS**
+Status: **FAIL**
 
-URL: http://127.0.0.1:54179/
+Ran at: 2026-09-03 00:10:35 UTC
 
 ## Cases
 
-- [PASS] home renders Forge Layer: Forge Layer
-Index
-Registry
-File a dispute
-Protocol
-Roadmap
-LOCAL REHEARSAL
-Enter the forge
-Contract not configured. PUBL
-- [PASS] home shows contract-not-configured or live chip: banner/chip
-- [PASS] landing has citation specimen: specimen
-- [PASS] landing has trust properties: holds
-- [PASS] landing has roadmap rail: roadmap
-- [PASS] registry lists dockets: docket ids or registry heading
-- [PASS] submit form: form visible
-- [PASS] roadmap page: roadmap copy
-- [PASS] protocol page: mechanism copy
-- [PASS] docket detail centerpiece: Forge Layer
-Index
-Registry
-File a dispute
-Protocol
-Roadmap
-LOCAL REHEARSAL
-Enter
-- [PASS] mobile no overflow: false
-- [PASS] no unexpected console errors: []
-- [PASS] no failed network on core paths: {"failedNet":[],"notFound":[]}
+- [FAIL] chromium_smoke.mjs: see log
+
+## Log
+
+```
+node:internal/modules/esm/resolve:873
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from /root/forge-layer/tests/chromium_smoke.mjs
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.20.2
+```

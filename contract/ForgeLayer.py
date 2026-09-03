@@ -11,7 +11,7 @@ MAX_FEE_BPS = u256(1000)
 MAX_CONTENT_REF = 4096
 MAX_REASONING = 1024
 MAX_LIST_LIMIT = 50
-PROTOCOL_VERSION = "1.3.0"
+PROTOCOL_VERSION = "1.4.0"
 
 STATUS_OPEN = "OPEN"
 STATUS_CHALLENGED = "CHALLENGED"
@@ -21,6 +21,7 @@ STATUS_EXPIRED = "EXPIRED_UNCHALLENGED"
 CLAIM_AI = "ai_generated"
 CLAIM_HUMAN = "human_made"
 VERDICT_INCONCLUSIVE = "inconclusive"
+VERDICT_UNADJUDICATED = "unadjudicated"
 TYPE_IMAGE = "image"
 TYPE_TEXT = "text"
 
@@ -341,7 +342,7 @@ class ForgeLayer(gl.Contract):
         }
 
     @gl.public.write.payable
-    def submit_dispute(self, content_type: str, content_ref: str, claim: str) -> None:
+    def submit_dispute(self, content_type: str, content_ref: str, claim: str) -> u256:
         self._require_not_paused()
         self._validate_ref(content_type, content_ref)
         if claim not in (CLAIM_AI, CLAIM_HUMAN):
@@ -366,6 +367,9 @@ class ForgeLayer(gl.Contract):
         self.created_at[dispute_id] = now
         self.fee_taken[dispute_id] = u256(0)
         self.next_id = dispute_id + u256(1)
+        # Return the created docket id from the write receipt so clients do not
+        # race an immediate next_id view against an unaccepted transaction.
+        return dispute_id
 
     @gl.public.write.payable
     def challenge_dispute(self, dispute_id: u256) -> None:
@@ -500,14 +504,13 @@ Return ONLY JSON with keys:
         if st == STATUS_OPEN:
             if now < self.challenge_deadline[dispute_id]:
                 raise gl.vm.UserError("not eligible for resolution")
-            # Design choice: unchallenged expiry upholds the original claim and
-            # refunds the submitter in full. No protocol fee — there was no
-            # opposing stake and no validator work.
+            # Unchallenged expiry does not adjudicate authenticity. The claim
+            # is recorded as unadjudicated rather than ai_generated / human_made.
             stake = self.submitter_stake[dispute_id]
             self.status[dispute_id] = STATUS_EXPIRED
-            self.verdict[dispute_id] = self.claim[dispute_id]
+            self.verdict[dispute_id] = VERDICT_UNADJUDICATED
             self.reasoning_summary[dispute_id] = (
-                "No challenger appeared before the deadline. The original claim stands."
+                "No challenger appeared before the deadline. The claim is unadjudicated; no validator review occurred."
             )
             self.resolved_at[dispute_id] = now
             self.fee_taken[dispute_id] = u256(0)
@@ -549,7 +552,7 @@ Return ONLY JSON with keys:
 
         submitted = self.claim[dispute_id]
         if verdict == VERDICT_INCONCLUSIVE:
-            # Split remainder equally; 1-wei dust stays in the fee vault.
+            # Split remainder equally; odd 1-wei remainder goes to the challenger.
             half = remainder // u256(2)
             self._pay(self.submitter[dispute_id], half)
             self._pay(self.challenger[dispute_id], remainder - half)
@@ -648,6 +651,7 @@ Return ONLY JSON with keys:
             "max_content_ref": MAX_CONTENT_REF,
             "max_list_limit": MAX_LIST_LIMIT,
             "next_id": int(self.next_id),
+            "verdicts": [CLAIM_AI, CLAIM_HUMAN, VERDICT_INCONCLUSIVE, VERDICT_UNADJUDICATED],
         }
 
     @gl.public.write

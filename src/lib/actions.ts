@@ -20,13 +20,60 @@ import {
   readOnchainList,
   readOnchainStats,
   writeOnchain,
+  type OnchainReceipt,
 } from "./chain";
 import type { AppConfig, Dispute, ListResult, RegistryStats, WithdrawResult } from "./protocol";
 
 export type TxHooks = {
   onPending?: () => void;
   onAccepted?: () => void;
+  onFinalized?: () => void;
 };
+
+/**
+ * Coerce the on-chain return payload into an integer docket id. The
+ * contract's `submit_dispute` returns `u256`; genlayer-js surfaces
+ * `bigint` on the receipt payload, but we also accept number/string
+ * fallbacks from older simulator builds.
+ */
+function extractDocketId(receipt: OnchainReceipt): number {
+  const raw = receipt.payload;
+  let n: number | bigint | null = null;
+  if (typeof raw === "bigint") n = raw;
+  else if (typeof raw === "number" && Number.isFinite(raw)) n = raw;
+  else if (typeof raw === "string") {
+    try {
+      n = BigInt(raw);
+    } catch {
+      n = null;
+    }
+  } else if (raw && typeof raw === "object") {
+    // Some simulator builds wrap the value as { value: bigint | string }
+    const r = raw as { value?: unknown };
+    if (typeof r.value === "bigint") n = r.value;
+    else if (typeof r.value === "number") n = r.value;
+    else if (typeof r.value === "string") {
+      try {
+        n = BigInt(r.value);
+      } catch {
+        n = null;
+      }
+    }
+  }
+  if (n == null) {
+    throw new Error(
+      `submit_dispute receipt did not contain a numeric return value (status=${receipt.status}). ` +
+        `Reads and route changes are unsafe until the network returns the id.`,
+    );
+  }
+  const num = typeof n === "bigint" ? Number(n) : n;
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new Error(
+      `submit_dispute returned a non-positive docket id: ${String(n)}`,
+    );
+  }
+  return Math.trunc(num);
+}
 
 export async function loadStats(config: AppConfig | null): Promise<RegistryStats> {
   if (config?.contract_configured) return readOnchainStats(config);
@@ -67,20 +114,29 @@ export async function submitDispute(
   hooks?: TxHooks,
 ): Promise<Dispute> {
   if (config?.contract_configured) {
-    await writeOnchain(config, {
+    // Wait for ACCEPTED + FINALIZED before resolving the dispute.
+    // Reads and route transitions must only run after the network
+    // has reached consensus on the leader receipt — see chain.ts.
+    const receipt = await writeOnchain(config, {
       account: body.caller,
       functionName: "submit_dispute",
       args: [body.content_type, body.content_ref, body.claim],
       value: BigInt(body.stake_wei),
       onPending: hooks?.onPending,
       onAccepted: hooks?.onAccepted,
+      onFinalized: hooks?.onFinalized,
     });
-    const stats = await readOnchainStats(config);
-    return readOnchainDispute(config, Math.max(1, stats.next_id - 1));
+    // Decode the integer docket id directly from the receipt
+    // payload (the contract's submit_dispute returns the u256 id).
+    // Do not race an immediate next_id view against an in-flight
+    // transaction.
+    const id = extractDocketId(receipt);
+    return readOnchainDispute(config, id);
   }
   hooks?.onPending?.();
   const d = await postSubmit(body);
   hooks?.onAccepted?.();
+  hooks?.onFinalized?.();
   return d;
 }
 
@@ -97,12 +153,14 @@ export async function challengeDispute(
       value: BigInt(body.stake_wei),
       onPending: hooks?.onPending,
       onAccepted: hooks?.onAccepted,
+      onFinalized: hooks?.onFinalized,
     });
     return readOnchainDispute(config, body.id);
   }
   hooks?.onPending?.();
   const d = await postChallenge(body.id, { caller: body.caller, stake_wei: body.stake_wei });
   hooks?.onAccepted?.();
+  hooks?.onFinalized?.();
   return d;
 }
 
@@ -118,12 +176,14 @@ export async function resolveDispute(
       args: [body.id],
       onPending: hooks?.onPending,
       onAccepted: hooks?.onAccepted,
+      onFinalized: hooks?.onFinalized,
     });
     return readOnchainDispute(config, body.id);
   }
   hooks?.onPending?.();
   const d = await postResolve(body.id, { caller: body.caller });
   hooks?.onAccepted?.();
+  hooks?.onFinalized?.();
   return d;
 }
 

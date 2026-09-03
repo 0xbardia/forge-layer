@@ -1,9 +1,9 @@
 {
-  "status": "PASS",
+  "status": "FAIL",
   "cases": [
     {
       "name": "production build artifact",
-      "ok": true,
+      "ok": false,
       "detail": "frontend/out/index.html"
     }
   ],

@@ -76,6 +76,13 @@ export function StatusPill({ status }: { status: DisputeStatus }) {
 
 export function VerdictMark({ verdict }: { verdict: Verdict | string | null }) {
   if (!verdict) return <span className="verdict verdict-pending">Pending</span>;
+  // Unadjudicated (or unadjudicated-expired) verdicts must be a neutral,
+  // unverified badge — they record that no validator reviewed the
+  // claim and explicitly do not attribute it to the submitter's initial
+  // position. We never map these to verdict-ai / verdict-human tones.
+  if (verdict === "unadjudicated") {
+    return <span className="verdict verdict-unadjudicated">Unadjudicated</span>;
+  }
   const tone =
     verdict === "ai_generated"
       ? "verdict-ai"
@@ -83,6 +90,30 @@ export function VerdictMark({ verdict }: { verdict: Verdict | string | null }) {
         ? "verdict-human"
         : "verdict-inconclusive";
   return <span className={cx("verdict", tone)}>{claimLabel(verdict)}</span>;
+}
+
+/**
+ * Detail-page verdict display. Mirrors `VerdictMark` but expands the
+ * expired-unchallenged case into an explicit "Unadjudicated (Expired)"
+ * label so the closed-out docket carries a clear "the window elapsed
+ * without a challenger" signal. Used by the docket detail page.
+ */
+export function VerdictBadge({
+  verdict,
+  status,
+}: {
+  verdict: Verdict | string | null;
+  status: DisputeStatus | string;
+}) {
+  if (status === "EXPIRED_UNCHALLENGED" || verdict === "unadjudicated") {
+    return (
+      <span className="verdict verdict-unadjudicated">
+        Unadjudicated
+        {status === "EXPIRED_UNCHALLENGED" ? " (Expired)" : ""}
+      </span>
+    );
+  }
+  return <VerdictMark verdict={verdict} />;
 }
 
 export function Panel({

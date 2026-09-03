@@ -1,5 +1,5 @@
 {
-  "status": "PASS",
+  "status": "FAIL",
   "cases": [
     {
       "name": "functional",
@@ -22,6 +22,11 @@
       "detail": "PASS"
     },
     {
+      "name": "lifecycle",
+      "ok": true,
+      "detail": "PASS"
+    },
+    {
       "name": "e2e",
       "ok": true,
       "detail": "PASS"
@@ -38,14 +43,14 @@
     },
     {
       "name": "build",
-      "ok": true,
-      "detail": "PASS"
+      "ok": false,
+      "detail": "FAIL"
     },
     {
       "name": "chromium",
-      "ok": true,
-      "detail": "PASS"
+      "ok": false,
+      "detail": "FAIL"
     }
   ],
-  "notes": "Re-run of the suite after any fix. Failures: none"
+  "notes": "Re-run of the suite after any fix. Failures: build, chromium"
 }

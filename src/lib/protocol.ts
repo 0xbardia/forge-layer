@@ -15,7 +15,24 @@ export const MAX_LIST_LIMIT = 50;
 
 export const CONTENT_TYPES = ["image", "text"] as const;
 export const CLAIMS = ["ai_generated", "human_made"] as const;
-export const VERDICTS = ["ai_generated", "human_made", "inconclusive"] as const;
+// Recorded verdicts: the three validator rulings plus `unadjudicated`,
+// which is the explicit outcome for a dispute whose challenge window
+// elapsed without a challenger (no validator review occurred).
+export const VERDICTS = [
+  "ai_generated",
+  "human_made",
+  "inconclusive",
+  "unadjudicated",
+] as const;
+// Validator rulings: only the three outcomes a validator may emit when
+// a dispute has been contested and inspected. `unadjudicated` is
+// reserved for unchallenged expiries and must never be produced by a
+// validator prompt path.
+export const VALIDATOR_VERDICTS = [
+  "ai_generated",
+  "human_made",
+  "inconclusive",
+] as const;
 export const STATUSES = [
   "OPEN",
   "CHALLENGED",
@@ -26,6 +43,7 @@ export const STATUSES = [
 export type ContentType = (typeof CONTENT_TYPES)[number];
 export type Claim = (typeof CLAIMS)[number];
 export type Verdict = (typeof VERDICTS)[number];
+export type ValidatorVerdict = (typeof VALIDATOR_VERDICTS)[number];
 export type DisputeStatus = (typeof STATUSES)[number];
 
 export interface Dispute {
@@ -130,6 +148,14 @@ export function isStatus(v: string): v is DisputeStatus {
   return (STATUSES as readonly string[]).includes(v);
 }
 
+export function isVerdict(v: string): v is Verdict {
+  return (VERDICTS as readonly string[]).includes(v);
+}
+
+export function isValidatorVerdict(v: string): v is ValidatorVerdict {
+  return (VALIDATOR_VERDICTS as readonly string[]).includes(v);
+}
+
 export function docketId(id: number): string {
   return `FL-${String(id).padStart(5, "0")}`;
 }
@@ -173,6 +199,7 @@ export function claimLabel(claim: Claim | Verdict | string): string {
   if (claim === "ai_generated") return "AI generated";
   if (claim === "human_made") return "Human made";
   if (claim === "inconclusive") return "Inconclusive";
+  if (claim === "unadjudicated") return "Unadjudicated";
   return claim;
 }
 

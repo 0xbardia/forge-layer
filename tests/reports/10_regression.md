@@ -1,8 +1,8 @@
 # 10 Regression Report
 
-Status: **PASS**
+Status: **FAIL**
 
-Ran at: 2026-08-29 01:50:01 UTC
+Ran at: 2026-09-03 00:10:35 UTC
 
 ## Cases
 
@@ -10,12 +10,13 @@ Ran at: 2026-08-29 01:50:01 UTC
 - [PASS] database: PASS
 - [PASS] integration: PASS
 - [PASS] security: PASS
+- [PASS] lifecycle: PASS
 - [PASS] e2e: PASS
 - [PASS] wallet: PASS
 - [PASS] uiux: PASS
-- [PASS] build: PASS
-- [PASS] chromium: PASS
+- [FAIL] build: FAIL
+- [FAIL] chromium: FAIL
 
 ## Notes
 
-Re-run of the suite after any fix. Failures: none
+Re-run of the suite after any fix. Failures: build, chromium

@@ -39,6 +39,9 @@ type ChainDef = {
   name?: string;
   rpcUrls?: { default?: { http?: string[] } };
   nativeCurrency?: { name?: string; symbol?: string; decimals?: number };
+  defaultNumberOfInitialValidators?: number;
+  defaultConsensusMaxRotations?: number;
+  consensusMainContract?: { address?: string; abi?: unknown };
 };
 
 type GenClient = {
@@ -48,13 +51,21 @@ type GenClient = {
     args?: unknown[];
     value?: bigint | number;
     account?: string;
-  }) => Promise<string>;
+    consensusMaxRotations?: number;
+  }) => Promise<string | bigint>;
   readContract: (args: {
     address: string;
     functionName: string;
     args?: unknown[];
   }) => Promise<unknown>;
-  waitForTransactionReceipt: (args: { hash: string; status?: string }) => Promise<unknown>;
+  waitForTransactionReceipt: (args: {
+    hash: string;
+    status?: string;
+    interval?: number;
+    retries?: number;
+    fullTransaction?: boolean;
+  }) => Promise<unknown>;
+  getTransaction: (args: { hash: string }) => Promise<unknown>;
 };
 
 async function loadChain(config: AppConfig): Promise<ChainDef> {
@@ -169,6 +180,41 @@ export async function ensureNetwork(config: AppConfig): Promise<void> {
   }
 }
 
+/**
+ * Terminal statuses that mean the transaction has been decided by the
+ * network and the leader receipt is trustworthy. The spec treats
+ * ACCEPTED + FINALIZED as the only valid end-states for any client
+ * dispatch — REJECTED, UNDETERMINED, and the various timeout/cancel
+ * statuses all bubble up as hard errors.
+ */
+const TERMINAL_OK_STATUSES = new Set(["ACCEPTED", "FINALIZED"]);
+const TERMINAL_FAIL_STATUSES = new Set([
+  "REJECTED",
+  "UNDETERMINED",
+  "CANCELED",
+  "VALIDATORS_TIMEOUT",
+  "LEADER_TIMEOUT",
+  "DROP",
+]);
+
+function isTerminalOk(status: string): boolean {
+  return TERMINAL_OK_STATUSES.has(status);
+}
+
+function isTerminalFail(status: string): boolean {
+  return TERMINAL_FAIL_STATUSES.has(status);
+}
+
+export type OnchainReceipt = {
+  hash: string;
+  status: string;
+  resultName?: string;
+  /** Raw decoded return payload from the leader receipt (u256 -> bigint, etc.). */
+  payload?: unknown;
+  /** Full raw receipt for callers that need more detail. */
+  raw: unknown;
+};
+
 export async function writeOnchain(
   config: AppConfig,
   opts: {
@@ -178,8 +224,9 @@ export async function writeOnchain(
     value?: bigint;
     onPending?: () => void;
     onAccepted?: () => void;
+    onFinalized?: () => void;
   },
-): Promise<string> {
+): Promise<OnchainReceipt> {
   console.log("[writeOnchain] entry", {
     contract_configured: config.contract_configured,
     public_contract_address: config.public_contract_address,
@@ -257,27 +304,80 @@ export async function writeOnchain(
   const { toRlp, toHex: viemToHex } = await import("viem");
   const serialized = toRlp([viemToHex(calldataBytes), viemToHex(new Uint8Array())]);
 
-  // 3. Encode the consensus addTransaction(args) call.
-  const consensusAbi: readonly unknown[] = [
+  // 3. Encode the consensus addTransaction(args) call. The
+  //    `_maxRotations` argument is the validated rotation count
+  //    matching the target network configuration. The chain's
+  //    `defaultConsensusMaxRotations` (a small positive integer,
+  //    typically 3 on Studio) is the protocol-blessed value; we
+  //    never fall back to a unix-timestamp here. The V5 contract
+  //    signature is (_sender, _recipient, _numOfInitialValidators,
+  //    _maxRotations, _txData); the V6 contract adds _validUntil
+  //    and is auto-detected by reading the chain's consensus ABI.
+  const chain = await loadChain(config);
+  const maxRotations = BigInt(
+    typeof chain.defaultConsensusMaxRotations === "number"
+      ? chain.defaultConsensusMaxRotations
+      : 3,
+  );
+  const initialValidators = BigInt(
+    typeof chain.defaultNumberOfInitialValidators === "number"
+      ? chain.defaultNumberOfInitialValidators
+      : 5,
+  );
+  const consensusInputsV5 = [
+    { name: "_sender", type: "address" },
+    { name: "_recipient", type: "address" },
+    { name: "_numOfInitialValidators", type: "uint256" },
+    { name: "_maxRotations", type: "uint256" },
+    { name: "_txData", type: "bytes" },
+  ] as const;
+  const consensusInputsV6 = [
+    ...consensusInputsV5,
+    { name: "_validUntil", type: "uint256" },
+  ] as const;
+  const consensusAbiV5 = [
     {
       type: "function",
       name: "addTransaction",
       stateMutability: "nonpayable",
-      inputs: [
-        { name: "_sender", type: "address" },
-        { name: "_recipient", type: "address" },
-        { name: "_numOfInitialValidators", type: "uint256" },
-        { name: "_maxRotations", type: "uint256" },
-        { name: "_txData", type: "bytes" },
-      ],
+      inputs: consensusInputsV5,
       outputs: [],
     },
   ] as const;
+  const consensusAbiV6 = [
+    {
+      type: "function",
+      name: "addTransaction",
+      stateMutability: "nonpayable",
+      inputs: consensusInputsV6,
+      outputs: [],
+    },
+  ] as const;
+  // Detect V5 vs V6 by looking for _validUntil in the chain's
+  // consensus ABI. Mirrors the SDK's getAddTransactionInputCount()
+  // helper so we don't depend on a private export.
+  const consensusAbi = chain.consensusMainContract?.abi;
+  const abiList = Array.isArray(consensusAbi) ? consensusAbi : [];
+  const addTxItem = abiList.find(
+    (item: unknown) =>
+      !!item &&
+      typeof item === "object" &&
+      (item as { type?: string }).type === "function" &&
+      (item as { name?: string }).name === "addTransaction",
+  );
+  const inputCount = Array.isArray(
+    (addTxItem as { inputs?: unknown[] } | undefined)?.inputs,
+  )
+    ? ((addTxItem as { inputs?: unknown[] }).inputs?.length ?? 0)
+    : 0;
+  const useV6 = inputCount >= 6;
   const validUntil = BigInt(Math.floor(Date.now() / 1000) + 3600);
   const data = encodeFunctionData({
-    abi: consensusAbi,
+    abi: useV6 ? consensusAbiV6 : consensusAbiV5,
     functionName: "addTransaction",
-    args: [sender, recipient, 5n, validUntil, serialized],
+    args: useV6
+      ? [sender, recipient, initialValidators, maxRotations, serialized, validUntil]
+      : [sender, recipient, initialValidators, maxRotations, serialized],
   });
 
   // 4. Send via viem's wallet client so MetaMask signs and broadcasts.
@@ -285,9 +385,6 @@ export async function writeOnchain(
   if (!eth) {
     throw new Error("No injected wallet found. Install MetaMask to sign on-chain.");
   }
-  const chain = (await loadChain(config)) as unknown as Parameters<
-    typeof createWalletClient
-  >[0]["chain"];
   // Consensus contract address is a chain constant — studionet:
   // 0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575. testnetBradbury:
   // 0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575 (same). localnet
@@ -299,26 +396,184 @@ export async function writeOnchain(
   );
   const wallet = createWalletClient({
     account: sender,
-    chain,
+    chain: chain as unknown as Parameters<typeof createWalletClient>[0]["chain"],
     transport: custom(eth),
   });
-  const hash = await wallet.sendTransaction({
-    chain,
+  const evmHash = await wallet.sendTransaction({
+    chain: chain as unknown as Parameters<typeof createWalletClient>[0]["chain"],
     account: sender,
     to: consensusAddr,
     data,
     value: opts.value ?? 0n,
   });
   opts.onPending?.();
-  console.log("[writeOnchain] sent transaction", { hash });
-  // genlayer-js polled waitForTransactionReceipt. We don't replicate
-  // the accepted/finalized dance here — the caller's onAccepted hook
-  // fires after the transaction is broadcast, which is enough for
-  // the UI to redirect. (Replicating the receipt poll would require
-  // a publicClient transport, which we keep separate to avoid
-  // creating a second websocket to the Studio RPC.)
+  console.log("[writeOnchain] sent transaction", { hash: evmHash });
+  // 5. Poll the receipt through the network until the transaction
+  //    reaches ACCEPTED. The SDK wrapper exposes
+  //    `waitForTransactionReceipt({ status: "ACCEPTED" })` which
+  //    resolves on any DECIDED state — for our purposes ACCEPTED is
+  //    the first terminal-ok stop; we then promote to FINALIZED
+  //    before letting dependent read calls execute.
+  const client = await createGenClient(config, opts.account);
+  const accepted = await pollForTerminal(client, evmHash, "ACCEPTED");
   opts.onAccepted?.();
-  return hash;
+  const finalized = await promoteToFinalized(client, evmHash, accepted);
+  opts.onFinalized?.();
+  return finalizeReceipt(evmHash, finalized);
+}
+
+async function pollForTerminal(
+  client: GenClient,
+  hash: string,
+  target: "ACCEPTED" | "FINALIZED",
+): Promise<Record<string, unknown>> {
+  const maxAttempts = 80;
+  const intervalMs = 3000;
+  let lastStatus = "UNKNOWN";
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    let tx: unknown = null;
+    try {
+      tx = await client.getTransaction({ hash });
+    } catch (err) {
+      // getTransaction can fail transiently — back off and retry.
+      console.warn("[writeOnchain] getTransaction failed, retrying", { attempt, err });
+    }
+    if (!tx) {
+      await sleep(intervalMs);
+      continue;
+    }
+    const rec = tx as Record<string, unknown>;
+    lastStatus = String(
+      (rec.statusName as string) ?? (rec.status as string) ?? "UNKNOWN",
+    );
+    if (isTerminalFail(lastStatus)) {
+      throw new Error(
+        `Transaction ${hash} reached terminal failure status "${lastStatus}". ` +
+          `Reads after this point are unsafe.`,
+      );
+    }
+    if (target === "FINALIZED" && lastStatus === "FINALIZED") return rec;
+    if (target === "ACCEPTED" && isTerminalOk(lastStatus)) return rec;
+    await sleep(intervalMs);
+  }
+  throw new Error(
+    `Transaction ${hash} did not reach ${target} within ${(maxAttempts * intervalMs) / 1000}s ` +
+      `(last observed status: ${lastStatus}).`,
+  );
+}
+
+async function promoteToFinalized(
+  client: GenClient,
+  hash: string,
+  accepted: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const status = String(
+    (accepted.statusName as string) ?? (accepted.status as string) ?? "",
+  );
+  if (status === "FINALIZED") return accepted;
+  return pollForTerminal(client, hash, "FINALIZED");
+}
+
+function finalizeReceipt(hash: string, rec: Record<string, unknown>): OnchainReceipt {
+  const status = String(
+    (rec.statusName as string) ?? (rec.status as string) ?? "UNKNOWN",
+  );
+  const payload = decodeReturnPayload(rec);
+  return {
+    hash,
+    status,
+    resultName: (rec.resultName as string) ?? (rec.txExecutionResultName as string),
+    payload,
+    raw: rec,
+  };
+}
+
+/**
+ * Walk the leader receipt payload tree to extract the function's return
+ * value. The contract's `submit_dispute` returns `u256`, which the
+ * SDK decodes to `bigint`; on success this is the freshly assigned
+ * docket id and clients must use it instead of racing an immediate
+ * `next_id` view call.
+ */
+function decodeReturnPayload(rec: Record<string, unknown>): unknown {
+  const data = rec.data as Record<string, unknown> | undefined;
+  if (!data) return undefined;
+  const consensus = data.consensus_data as Record<string, unknown> | undefined;
+  if (!consensus) return undefined;
+  const leader = consensus.leader_receipt;
+  if (!Array.isArray(leader)) return undefined;
+  for (const entry of leader) {
+    const r = entry as Record<string, unknown>;
+    const result = r.result as Record<string, unknown> | string | undefined;
+    if (!result) continue;
+    if (typeof result === "string") {
+      // Result may not yet be decoded on the local network path.
+      try {
+        const decoded = decodeBase64Result(result);
+        if (decoded && typeof decoded === "object") {
+          const status = (decoded as { status?: string }).status;
+          if (status === "return") {
+            const payload = (decoded as { payload?: unknown }).payload;
+            if (payload !== undefined) return payload;
+          }
+        }
+      } catch {
+        // fall through to the next shape
+      }
+      continue;
+    }
+    const status = (result as { status?: string }).status;
+    if (status === "return") return (result as { payload?: unknown }).payload;
+  }
+  return undefined;
+}
+
+function decodeBase64Result(raw: string): unknown {
+  if (typeof atob === "undefined") return null;
+  let bytes: Uint8Array;
+  try {
+    const decoded = atob(raw);
+    bytes = Uint8Array.from(decoded, (c) => c.charCodeAt(0));
+  } catch {
+    return null;
+  }
+  if (!bytes.length) return null;
+  const code = bytes[0];
+  // Mirrors genlayer-js RESULT_CODES: 0=return, 1=rollback,
+  // 2=contract_error, 3=error, 4=none, 5=no_leaders.
+  const status =
+    code === 0 ? "return"
+      : code === 1 ? "rollback"
+      : code === 2 ? "contract_error"
+      : code === 3 ? "error"
+      : code === 4 ? "none"
+      : code === 5 ? "no_leaders"
+      : "<unknown>";
+  if (code !== 0) return { status };
+  // Best-effort: parse the rest as a decimal number when it looks
+  // like a single PINT (positive integer big-endian). PINT calldata
+  // encoding uses a length-prefixed header; for typical u256 values
+  // returned by `submit_dispute` the header byte is small (0x08 for
+  // a 1-byte payload, 0x09 for 2 bytes, etc.). When the leading
+  // length nibble matches the remainder we strip it and BigInt the
+  // remaining bytes; otherwise we return the raw bytes so callers
+  // can still inspect the payload.
+  const tail = bytes.slice(1);
+  const headerByte = tail[0];
+  if (headerByte === undefined) return { status, payload: tail };
+  const declaredLen = headerByte & 0x7f;
+  // The contract returns `u256`. The decoder is permissive: any
+  // positive BigInt is acceptable.
+  let bi = 0n;
+  for (let i = 1; i < tail.length; i++) {
+    bi = (bi << 8n) | BigInt(tail[i] ?? 0);
+  }
+  void declaredLen;
+  return { status, payload: bi };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function asRecord(raw: unknown): Record<string, unknown> {

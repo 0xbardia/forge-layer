@@ -2,160 +2,160 @@
   "status": "PASS",
   "cases": [
     {
-      "name": "test_below_min (test_protocol.ProtocolTests)",
+      "name": "test_below_min (test_protocol.ProtocolTests.test_below_min)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_challenge_after_deadline (test_protocol.ProtocolTests)",
+      "name": "test_challenge_after_deadline (test_protocol.ProtocolTests.test_challenge_after_deadline)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_challenged_resolve (test_protocol.ProtocolTests)",
+      "name": "test_challenged_resolve (test_protocol.ProtocolTests.test_challenged_resolve)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_credentialed_image_rejected (test_protocol.ProtocolTests)",
+      "name": "test_credentialed_image_rejected (test_protocol.ProtocolTests.test_credentialed_image_rejected)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_double_challenge (test_protocol.ProtocolTests)",
+      "name": "test_double_challenge (test_protocol.ProtocolTests.test_double_challenge)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_empty_ref (test_protocol.ProtocolTests)",
+      "name": "test_empty_ref (test_protocol.ProtocolTests.test_empty_ref)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_expired_unchallenged_path (test_protocol.ProtocolTests)",
+      "name": "test_expired_unchallenged_path (test_protocol.ProtocolTests.test_expired_unchallenged_path)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_http_image_rejected (test_protocol.ProtocolTests)",
+      "name": "test_http_image_rejected (test_protocol.ProtocolTests.test_http_image_rejected)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_https_public_image_accepted (test_protocol.ProtocolTests)",
+      "name": "test_https_public_image_accepted (test_protocol.ProtocolTests.test_https_public_image_accepted)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_idn_and_hex_rejected (test_protocol.ProtocolTests)",
+      "name": "test_idn_and_hex_rejected (test_protocol.ProtocolTests.test_idn_and_hex_rejected)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_injection_in_content_ref (test_protocol.ProtocolTests)",
+      "name": "test_injection_in_content_ref (test_protocol.ProtocolTests.test_injection_in_content_ref)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_invalid_claim (test_protocol.ProtocolTests)",
+      "name": "test_invalid_claim (test_protocol.ProtocolTests.test_invalid_claim)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_javascript_image_rejected (test_protocol.ProtocolTests)",
+      "name": "test_javascript_image_rejected (test_protocol.ProtocolTests.test_javascript_image_rejected)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_list_pagination_and_filter (test_protocol.ProtocolTests)",
+      "name": "test_list_pagination_and_filter (test_protocol.ProtocolTests.test_list_pagination_and_filter)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_localhost_image_rejected (test_protocol.ProtocolTests)",
+      "name": "test_localhost_image_rejected (test_protocol.ProtocolTests.test_localhost_image_rejected)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_malformed_image (test_protocol.ProtocolTests)",
+      "name": "test_malformed_image (test_protocol.ProtocolTests.test_malformed_image)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_non_owner_admin (test_protocol.ProtocolTests)",
+      "name": "test_non_owner_admin (test_protocol.ProtocolTests.test_non_owner_admin)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_oversized_ref (test_protocol.ProtocolTests)",
+      "name": "test_oversized_ref (test_protocol.ProtocolTests.test_oversized_ref)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_owner_fee_and_withdraw (test_protocol.ProtocolTests)",
+      "name": "test_owner_fee_and_withdraw (test_protocol.ProtocolTests.test_owner_fee_and_withdraw)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_pause_blocks_writes (test_protocol.ProtocolTests)",
+      "name": "test_pause_blocks_writes (test_protocol.ProtocolTests.test_pause_blocks_writes)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_private_and_encoded_hosts_rejected (test_protocol.ProtocolTests)",
+      "name": "test_private_and_encoded_hosts_rejected (test_protocol.ProtocolTests.test_private_and_encoded_hosts_rejected)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_resolve_before_deadline_open (test_protocol.ProtocolTests)",
+      "name": "test_resolve_before_deadline_open (test_protocol.ProtocolTests.test_resolve_before_deadline_open)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_resolve_twice (test_protocol.ProtocolTests)",
+      "name": "test_resolve_twice (test_protocol.ProtocolTests.test_resolve_twice)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_self_challenge (test_protocol.ProtocolTests)",
+      "name": "test_self_challenge (test_protocol.ProtocolTests.test_self_challenge)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_stake_mismatch (test_protocol.ProtocolTests)",
+      "name": "test_stake_mismatch (test_protocol.ProtocolTests.test_stake_mismatch)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_stats_shape (test_protocol.ProtocolTests)",
+      "name": "test_stats_shape (test_protocol.ProtocolTests.test_stats_shape)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_submit_and_get (test_protocol.ProtocolTests)",
+      "name": "test_submit_and_get (test_protocol.ProtocolTests.test_submit_and_get)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_text_http_url_rejected (test_protocol.ProtocolTests)",
+      "name": "test_text_http_url_rejected (test_protocol.ProtocolTests.test_text_http_url_rejected)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_transfer_ownership (test_protocol.ProtocolTests)",
+      "name": "test_transfer_ownership (test_protocol.ProtocolTests.test_transfer_ownership)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_unreachable_image_inconclusive (test_protocol.ProtocolTests)",
+      "name": "test_unreachable_image_inconclusive (test_protocol.ProtocolTests.test_unreachable_image_inconclusive)",
       "ok": true,
       "detail": "ok"
     },
     {
-      "name": "test_zero_stake (test_protocol.ProtocolTests)",
+      "name": "test_zero_stake (test_protocol.ProtocolTests.test_zero_stake)",
       "ok": true,
       "detail": "ok"
     }
   ],
-  "log": "\ntest_below_min (test_protocol.ProtocolTests) ... ok\ntest_challenge_after_deadline (test_protocol.ProtocolTests) ... ok\ntest_challenged_resolve (test_protocol.ProtocolTests) ... ok\ntest_credentialed_image_rejected (test_protocol.ProtocolTests) ... ok\ntest_double_challenge (test_protocol.ProtocolTests) ... ok\ntest_empty_ref (test_protocol.ProtocolTests) ... ok\ntest_expired_unchallenged_path (test_protocol.ProtocolTests) ... ok\ntest_http_image_rejected (test_protocol.ProtocolTests) ... ok\ntest_https_public_image_accepted (test_protocol.ProtocolTests) ... ok\ntest_idn_and_hex_rejected (test_protocol.ProtocolTests) ... ok\ntest_injection_in_content_ref (test_protocol.ProtocolTests) ... ok\ntest_invalid_claim (test_protocol.ProtocolTests) ... ok\ntest_javascript_image_rejected (test_protocol.ProtocolTests) ... ok\ntest_list_pagination_and_filter (test_protocol.ProtocolTests) ... ok\ntest_localhost_image_rejected (test_protocol.ProtocolTests) ... ok\ntest_malformed_image (test_protocol.ProtocolTests) ... ok\ntest_non_owner_admin (test_protocol.ProtocolTests) ... ok\ntest_oversized_ref (test_protocol.ProtocolTests) ... ok\ntest_owner_fee_and_withdraw (test_protocol.ProtocolTests) ... ok\ntest_pause_blocks_writes (test_protocol.ProtocolTests) ... ok\ntest_private_and_encoded_hosts_rejected (test_protocol.ProtocolTests) ... ok\ntest_resolve_before_deadline_open (test_protocol.ProtocolTests) ... ok\ntest_resolve_twice (test_protocol.ProtocolTests) ... ok\ntest_self_challenge (test_protocol.ProtocolTests) ... ok\ntest_stake_mismatch (test_protocol.ProtocolTests) ... ok\ntest_stats_shape (test_protocol.ProtocolTests) ... ok\ntest_submit_and_get (test_protocol.ProtocolTests) ... ok\ntest_text_http_url_rejected (test_protocol.ProtocolTests) ... ok\ntest_transfer_ownership (test_protocol.ProtocolTests) ... ok\ntest_unreachable_image_inconclusive (test_protocol.ProtocolTests) ... ok\ntest_zero_stake (test_protocol.ProtocolTests) ... ok\n\n----------------------------------------------------------------------\nRan 31 tests in 4.377s\n\nOK\n"
+  "log": "\ntest_below_min (test_protocol.ProtocolTests.test_below_min) ... ok\ntest_challenge_after_deadline (test_protocol.ProtocolTests.test_challenge_after_deadline) ... ok\ntest_challenged_resolve (test_protocol.ProtocolTests.test_challenged_resolve) ... ok\ntest_credentialed_image_rejected (test_protocol.ProtocolTests.test_credentialed_image_rejected) ... ok\ntest_double_challenge (test_protocol.ProtocolTests.test_double_challenge) ... ok\ntest_empty_ref (test_protocol.ProtocolTests.test_empty_ref) ... ok\ntest_expired_unchallenged_path (test_protocol.ProtocolTests.test_expired_unchallenged_path) ... ok\ntest_http_image_rejected (test_protocol.ProtocolTests.test_http_image_rejected) ... ok\ntest_https_public_image_accepted (test_protocol.ProtocolTests.test_https_public_image_accepted) ... ok\ntest_idn_and_hex_rejected (test_protocol.ProtocolTests.test_idn_and_hex_rejected) ... ok\ntest_injection_in_content_ref (test_protocol.ProtocolTests.test_injection_in_content_ref) ... ok\ntest_invalid_claim (test_protocol.ProtocolTests.test_invalid_claim) ... ok\ntest_javascript_image_rejected (test_protocol.ProtocolTests.test_javascript_image_rejected) ... ok\ntest_list_pagination_and_filter (test_protocol.ProtocolTests.test_list_pagination_and_filter) ... ok\ntest_localhost_image_rejected (test_protocol.ProtocolTests.test_localhost_image_rejected) ... ok\ntest_malformed_image (test_protocol.ProtocolTests.test_malformed_image) ... ok\ntest_non_owner_admin (test_protocol.ProtocolTests.test_non_owner_admin) ... ok\ntest_oversized_ref (test_protocol.ProtocolTests.test_oversized_ref) ... ok\ntest_owner_fee_and_withdraw (test_protocol.ProtocolTests.test_owner_fee_and_withdraw) ... ok\ntest_pause_blocks_writes (test_protocol.ProtocolTests.test_pause_blocks_writes) ... ok\ntest_private_and_encoded_hosts_rejected (test_protocol.ProtocolTests.test_private_and_encoded_hosts_rejected) ... ok\ntest_resolve_before_deadline_open (test_protocol.ProtocolTests.test_resolve_before_deadline_open) ... ok\ntest_resolve_twice (test_protocol.ProtocolTests.test_resolve_twice) ... ok\ntest_self_challenge (test_protocol.ProtocolTests.test_self_challenge) ... ok\ntest_stake_mismatch (test_protocol.ProtocolTests.test_stake_mismatch) ... ok\ntest_stats_shape (test_protocol.ProtocolTests.test_stats_shape) ... ok\ntest_submit_and_get (test_protocol.ProtocolTests.test_submit_and_get) ... ok\ntest_text_http_url_rejected (test_protocol.ProtocolTests.test_text_http_url_rejected) ... ok\ntest_transfer_ownership (test_protocol.ProtocolTests.test_transfer_ownership) ... ok\ntest_unreachable_image_inconclusive (test_protocol.ProtocolTests.test_unreachable_image_inconclusive) ... ok\ntest_zero_stake (test_protocol.ProtocolTests.test_zero_stake) ... ok\n\n----------------------------------------------------------------------\nRan 31 tests in 0.103s\n\nOK\n"
 }

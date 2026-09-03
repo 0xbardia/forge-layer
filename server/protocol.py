@@ -14,6 +14,18 @@ DEFAULT_FEE_BPS = 250
 MAX_FEE_BPS = 1000
 DEFAULT_WINDOW = 120
 DEFAULT_OWNER = "0x0000000000000000000000000000000000000001"
+# Recorded verdicts: the three validator rulings plus the explicit
+# `unadjudicated` outcome that is assigned when the challenge window
+# elapses without a challenger (no validator review occurred).
+VERDICT_AI = "ai_generated"
+VERDICT_HUMAN = "human_made"
+VERDICT_INCONCLUSIVE = "inconclusive"
+VERDICT_UNADJUDICATED = "unadjudicated"
+# Verdict vocabulary that may be returned by a validator inspection.
+# `unadjudicated` is reserved for unchallenged expiries and validators
+# must never emit it.
+VALIDATOR_VERDICTS = (VERDICT_AI, VERDICT_HUMAN, VERDICT_INCONCLUSIVE)
+RECORDED_VERDICTS = (VERDICT_AI, VERDICT_HUMAN, VERDICT_INCONCLUSIVE, VERDICT_UNADJUDICATED)
 ADDR_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 METADATA_HOSTS = {
     "localhost",
@@ -371,6 +383,9 @@ class Registry:
         )
         self.conn.execute("update registry_meta set next_id = ? where id = 1", (did + 1,))
         self.conn.commit()
+        # The execution output exposes the freshly created integer
+        # docket id so the client never has to race a separate
+        # next_id view against an in-flight transaction.
         return self.get_dispute(did)
 
     def challenge_dispute(self, caller: str, dispute_id: int, stake_wei: int) -> dict:
@@ -407,12 +422,15 @@ class Registry:
         if d["status"] == "OPEN":
             if ts < d["challenge_deadline"]:
                 raise ProtocolError("not eligible for resolution")
+            # Unchallenged expiry does not adjudicate authenticity. The
+            # claim is recorded as `unadjudicated` rather than being
+            # attributed to the submitter's initial position.
             self.conn.execute(
                 """update disputes set status = 'EXPIRED_UNCHALLENGED', verdict = ?,
                    reasoning_summary = ?, resolved_at = ?, fee_taken_wei = '0' where id = ?""",
                 (
-                    d["claim"],
-                    "No challenger appeared before the deadline. The original claim stands.",
+                    VERDICT_UNADJUDICATED,
+                    "No challenger appeared before the deadline. The dispute window elapsed without a validator review; the original stake was returned to the submitter in full, with no protocol fee deducted.",
                     ts,
                     dispute_id,
                 ),
@@ -426,8 +444,12 @@ class Registry:
             verdict = inspection["verdict"]
             reasoning = inspection["reasoning"][:1024]
         except Exception:
-            verdict = "inconclusive"
+            verdict = VERDICT_INCONCLUSIVE
             reasoning = "Validators could not complete inspection. Marked inconclusive."
+        # Validators may only emit the three standard rulings. Anything
+        # else (including `unadjudicated`) collapses to `inconclusive`.
+        if verdict not in VALIDATOR_VERDICTS:
+            verdict = VERDICT_INCONCLUSIVE
         pot = int(d["submitter_stake"]) + int(d["challenger_stake"] or 0)
         fee = pot * int(self.meta()["fee_bps"]) // 10000
         self.conn.execute(

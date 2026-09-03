@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ConfigNotice } from "@/components/ConfigNotice";
 import { ConsensusPanel } from "@/components/ConsensusPanel";
 import { TxStatus } from "@/components/TxStatus";
-import { Button, Panel, Skeleton, StatusPill, VerdictMark } from "@/components/ui";
+import { Button, Panel, Skeleton, StatusPill, VerdictBadge } from "@/components/ui";
 import { challengeDispute, loadDispute, loadStats, resolveDispute } from "@/lib/actions";
 import { parseRevert } from "@/lib/chain";
 import { formatRelative, formatWhen } from "@/lib/format";
@@ -131,11 +131,17 @@ export function DisputeDetail({ routeId }: { routeId: string }) {
   const canResolveChallenged = d.status === "CHALLENGED";
   const canResolveExpired = d.status === "OPEN" && now > d.challenge_deadline;
   const isSubmitter = address?.toLowerCase() === d.submitter.toLowerCase();
+  const isClosed = d.status === "RESOLVED" || d.status === "EXPIRED_UNCHALLENGED";
+  // Once a docket is settled or expired, the challenge window is no
+  // longer a live timer — the spec requires a static "Closed / Settled"
+  // label rather than active "X minutes left" copy that would imply the
+  // window is still meaningful.
+  const windowRelative = isClosed ? "Closed / Settled" : formatRelative(d.challenge_deadline, now);
 
   const citation = [
     `Forge Layer Docket ${docketId(d.id)}`,
     `Claim: ${claimLabel(d.claim)}`,
-    `Verdict: ${d.verdict ? claimLabel(d.verdict) : "pending"}`,
+    `Verdict: ${d.status === "EXPIRED_UNCHALLENGED" ? "Unadjudicated (Expired)" : d.verdict ? claimLabel(d.verdict) : "pending"}`,
     `Status: ${d.status}`,
     d.resolved_at ? `Settled: ${formatWhen(d.resolved_at)}` : `Filed: ${formatWhen(d.created_at)}`,
   ].join("\n");
@@ -185,6 +191,19 @@ export function DisputeDetail({ routeId }: { routeId: string }) {
                 : "Trigger resolution to ask validators to inspect this source."}
             </p>
           )}
+
+          {d.status === "EXPIRED_UNCHALLENGED" ? (
+            <div className="reason-block" data-role="unadjudicated-expiry">
+              <p className="kicker">What this docket means</p>
+              <p>
+                The challenge window elapsed without an opposing challenger
+                appearing. No validator review occurred, and the original
+                authenticity claim was <strong>not</strong> adjudicated. The
+                submitter's full staked amount was returned to them in full;
+                the protocol did not deduct any fee.
+              </p>
+            </div>
+          ) : null}
         </Panel>
 
         <div className="aside-stack">
@@ -229,7 +248,7 @@ export function DisputeDetail({ routeId }: { routeId: string }) {
               <div className="kv-row">
                 <dt>Verdict</dt>
                 <dd>
-                  <VerdictMark verdict={d.verdict} />
+                  <VerdictBadge verdict={d.verdict} status={d.status} />
                 </dd>
               </div>
               <div className="kv-row">
@@ -246,7 +265,7 @@ export function DisputeDetail({ routeId }: { routeId: string }) {
               </div>
               <div className="kv-row">
                 <dt>Window relative</dt>
-                <dd>{formatRelative(d.challenge_deadline, now)}</dd>
+                <dd>{windowRelative}</dd>
               </div>
               <div className="kv-row">
                 <dt>Filed</dt>

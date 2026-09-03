@@ -77,6 +77,7 @@ def main() -> int:
     results["database"] = category_unittest("02_database", "test_database")
     results["integration"] = category_unittest("03_integration", "test_http")
     results["security"] = category_unittest("05_security", "test_protocol")
+    results["lifecycle"] = category_unittest("06_lifecycle", "test_onchain_flow")
 
     # E2E: scripted HTTP journey matching the user story
     e2e_ok, e2e_log = run_unittest("test_http.HttpTests.test_submit_challenge_resolve_flow")
