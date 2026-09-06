@@ -41,6 +41,11 @@ type ChainDef = {
   nativeCurrency?: { name?: string; symbol?: string; decimals?: number };
   defaultNumberOfInitialValidators?: number;
   defaultConsensusMaxRotations?: number;
+  /** Studio RPCs return the genlayer tx id directly from
+   *  `eth_sendTransaction`; external chains (Bradbury) require
+   *  the caller to wait for the EVM receipt and parse the
+   *  `NewTransaction`/`CreatedTransaction` event to recover it. */
+  isStudio?: boolean;
   consensusMainContract?: { address?: string; abi?: unknown };
 };
 
@@ -67,6 +72,10 @@ type GenClient = {
   }) => Promise<unknown>;
   getTransaction: (args: { hash: string }) => Promise<unknown>;
 };
+
+/** Public re-export of the client surface so the wallet-adapter
+ *  test suite can mock individual methods. */
+export type { GenClient };
 
 async function loadChain(config: AppConfig): Promise<ChainDef> {
   const chains = await import("genlayer-js/chains");
@@ -260,8 +269,7 @@ export async function writeOnchain(
   // the address arguments are checksummed at the right moment and
   // the resulting data is byte-identical to what the wrapper would
   // have produced.
-  const { createWalletClient, encodeFunctionData, getAddress, custom } =
-    await import("viem");
+  const { createWalletClient, getAddress, custom } = await import("viem");
 
   // 1. Resolve a properly-checksummed sender + recipient.
   const sender = getAddress(opts.account as `0x${string}`);
@@ -304,16 +312,187 @@ export async function writeOnchain(
   const { toRlp, toHex: viemToHex } = await import("viem");
   const serialized = toRlp([viemToHex(calldataBytes), viemToHex(new Uint8Array())]);
 
-  // 3. Encode the consensus addTransaction(args) call. The
-  //    `_maxRotations` argument is the validated rotation count
-  //    matching the target network configuration. The chain's
-  //    `defaultConsensusMaxRotations` (a small positive integer,
-  //    typically 3 on Studio) is the protocol-blessed value; we
-  //    never fall back to a unix-timestamp here. The V5 contract
-  //    signature is (_sender, _recipient, _numOfInitialValidators,
-  //    _maxRotations, _txData); the V6 contract adds _validUntil
-  //    and is auto-detected by reading the chain's consensus ABI.
+  // 3. Encode the consensus addTransaction(args) call via the
+  //    shared `encodeConsensusAddTransaction` helper. The helper
+  //    sets `_maxRotations` to `chain.defaultConsensusMaxRotations`
+  //    (a small positive integer, typically 3 on Studio / 3 on
+  //    Bradbury) — we never fall back to a unix-timestamp here.
+  //    The V5 contract signature is (_sender, _recipient,
+  //    _numOfInitialValidators, _maxRotations, _txData); the V6
+  //    contract adds _validUntil and is auto-detected by reading
+  //    the chain's consensus ABI. The test suite imports the same
+  //    helper to assert the rotation count is honoured, so the
+  //    production path cannot drift from the contract.
   const chain = await loadChain(config);
+  const encoded = await encodeConsensusAddTransaction(config, {
+    sender,
+    recipient,
+    data: serialized as `0x${string}`,
+  });
+  const data = encoded.data;
+
+  // 4. Send via viem's wallet client so MetaMask signs and broadcasts.
+  const eth = getEthereum();
+  if (!eth) {
+    throw new Error("No injected wallet found. Install MetaMask to sign on-chain.");
+  }
+  // Consensus contract address is a chain constant. We resolve it
+  // from the loaded chain config when present, and fall back to
+  // the historical hard-coded value (studionet/localnet) so older
+  // builds without `chain.consensusMainContract.address` still
+  // surface a checksummed address. testnetBradbury currently uses
+  // 0x0112Bf6e83497965A5fdD6Dad1E447a6E004271D; studionet and
+  // localnet both use 0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575.
+  const consensusAddr = getAddress(
+    (chain.consensusMainContract?.address ??
+      "0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575") as `0x${string}`,
+  );
+  const wallet = createWalletClient({
+    account: sender,
+    chain: chain as unknown as Parameters<typeof createWalletClient>[0]["chain"],
+    transport: custom(eth),
+  });
+  const evmHash = await wallet.sendTransaction({
+    chain: chain as unknown as Parameters<typeof createWalletClient>[0]["chain"],
+    account: sender,
+    to: consensusAddr,
+    data,
+    value: opts.value ?? 0n,
+  });
+  opts.onPending?.();
+  console.log("[writeOnchain] sent transaction", { hash: evmHash });
+  // 6. Hand the broadcast hash off to the testable adapter that
+  //    owns the genlayer-tx-id resolution + ACCEPTED + FINALIZED
+  //    polling. The adapter is exported (and unit-tested) so the
+  //    Bradbury polling contract is covered independent of the
+  //    wallet signing path here.
+  const client = await createGenClient(config, opts.account);
+  return runWalletAdapter({
+    client,
+    chain,
+    evmHash,
+    consensusAddr,
+    hooks: {
+      onAccepted: opts.onAccepted,
+      onFinalized: opts.onFinalized,
+    },
+  });
+}
+
+/**
+ * Testable surface for the post-broadcast adapter. Accepts a
+ * pre-constructed `GenClient` + chain metadata + the broadcast
+ * `evmHash` from a successful `wallet.sendTransaction` call, then:
+ *
+ *   1. On non-Studio chains (e.g. testnetBradbury / V6) awaits
+ *      the EVM receipt and parses the consensus `NewTransaction`
+ *      or `CreatedTransaction` event to recover the actual
+ *      `genlayerTxId`. The broadcast EVM hash is NOT a valid
+ *      key into GenLayer consensus and will stall the polling
+ *      loop indefinitely if handed to `getTransaction` as-is.
+ *   2. Polls `client.getTransaction({ hash: genlayerTxId })`
+ *      through ACCEPTED, then promotes to FINALIZED.
+ *   3. Returns the FINALIZED receipt, surfacing a hard error on
+ *      any terminal failure (REJECTED / UNDETERMINED / CANCELED /
+ *      VALIDATORS_TIMEOUT / LEADER_TIMEOUT / DROP).
+ *
+ * Exported so that the wallet-adapter test suite can drive the
+ * state machine with mock clients and synthetic event logs.
+ */
+export type WalletAdapterHooks = {
+  onAccepted?: () => void;
+  onFinalized?: () => void;
+};
+
+export type WalletAdapterDeps = {
+  client: GenClient;
+  chain: ChainDef;
+  evmHash: string;
+  consensusAddr: string;
+  hooks?: WalletAdapterHooks;
+  /** Override the polling cadences. Tests pass tiny values
+   *  to keep the loop under a second; production callers
+   *  accept the defaults (3s, 80 attempts, 40 receipt polls). */
+  poll?: {
+    acceptMaxAttempts?: number;
+    acceptIntervalMs?: number;
+    finalizedMaxAttempts?: number;
+    finalizedIntervalMs?: number;
+    receiptRetries?: number;
+  };
+};
+
+export async function runWalletAdapter(
+  deps: WalletAdapterDeps,
+): Promise<OnchainReceipt> {
+  const { client, chain, evmHash, consensusAddr, hooks } = deps;
+  const isStudio = chain.isStudio === true;
+  let consensusTxId: string = evmHash;
+  if (!isStudio) {
+    consensusTxId = await resolveGenlayerTxIdFromReceipt(
+      client,
+      evmHash,
+      consensusAddr,
+    );
+    if (consensusTxId === evmHash) {
+      // Belt-and-braces: if event extraction falls through (rare
+      // race conditions, pruned logs), keep polling with the EVM
+      // hash rather than blocking the user. We log loudly so the
+      // operator can notice.
+      console.warn(
+        "[writeOnchain] no NewTransaction/CreatedTransaction event in receipt; falling back to EVM hash polling",
+      );
+    } else {
+      console.log("[writeOnchain] resolved genlayer tx id", {
+        evmHash,
+        consensusTxId,
+      });
+    }
+  }
+  // Poll the receipt through the network until the transaction
+  // reaches ACCEPTED. The SDK wrapper exposes
+  // `waitForTransactionReceipt({ status: "ACCEPTED" })` which
+  // resolves on any DECIDED state — for our purposes ACCEPTED is
+  // the first terminal-ok stop; we then promote to FINALIZED
+  // before letting dependent read calls execute.
+  const accepted = await pollForTerminal(
+    client,
+    consensusTxId,
+    "ACCEPTED",
+    deps.poll?.acceptMaxAttempts,
+    deps.poll?.acceptIntervalMs,
+  );
+  hooks?.onAccepted?.();
+  const finalized = await promoteToFinalized(
+    client,
+    consensusTxId,
+    accepted,
+    deps.poll?.finalizedMaxAttempts,
+    deps.poll?.finalizedIntervalMs,
+  );
+  hooks?.onFinalized?.();
+  return finalizeReceipt(consensusTxId, finalized);
+}
+
+/**
+ * Build the exact `addTransaction(...)` calldata + the pre-image
+ * of the values the wallet will sign. Exported so that the
+ * adapter test suite can assert on the `_maxRotations` arg
+ * (which must equal `chain.defaultConsensusMaxRotations`) and on
+ * the V5 vs V6 selection.
+ */
+export async function encodeConsensusAddTransaction(
+  config: AppConfig,
+  opts: { sender: string; recipient: string; data: `0x${string}` },
+): Promise<{
+  data: `0x${string}`;
+  useV6: boolean;
+  maxRotations: bigint;
+  initialValidators: bigint;
+  validUntil?: bigint;
+}> {
+  const chain = await loadChain(config);
+  const { encodeFunctionData, getAddress } = await import("viem");
   const maxRotations = BigInt(
     typeof chain.defaultConsensusMaxRotations === "number"
       ? chain.defaultConsensusMaxRotations
@@ -353,9 +532,6 @@ export async function writeOnchain(
       outputs: [],
     },
   ] as const;
-  // Detect V5 vs V6 by looking for _validUntil in the chain's
-  // consensus ABI. Mirrors the SDK's getAddTransactionInputCount()
-  // helper so we don't depend on a private export.
   const consensusAbi = chain.consensusMainContract?.abi;
   const abiList = Array.isArray(consensusAbi) ? consensusAbi : [];
   const addTxItem = abiList.find(
@@ -371,64 +547,169 @@ export async function writeOnchain(
     ? ((addTxItem as { inputs?: unknown[] }).inputs?.length ?? 0)
     : 0;
   const useV6 = inputCount >= 6;
-  const validUntil = BigInt(Math.floor(Date.now() / 1000) + 3600);
+  const validUntil = useV6
+    ? BigInt(Math.floor(Date.now() / 1000) + 3600)
+    : undefined;
+  const sender = getAddress(opts.sender as `0x${string}`);
+  const recipient = getAddress(opts.recipient as `0x${string}`);
+  const argsV5: readonly [`0x${string}`, `0x${string}`, bigint, bigint, `0x${string}`] = [
+    sender, recipient, initialValidators, maxRotations, opts.data,
+  ];
+  const argsV6: readonly [`0x${string}`, `0x${string}`, bigint, bigint, `0x${string}`, bigint] = [
+    sender, recipient, initialValidators, maxRotations, opts.data, validUntil as bigint,
+  ];
   const data = encodeFunctionData({
     abi: useV6 ? consensusAbiV6 : consensusAbiV5,
     functionName: "addTransaction",
-    args: useV6
-      ? [sender, recipient, initialValidators, maxRotations, serialized, validUntil]
-      : [sender, recipient, initialValidators, maxRotations, serialized],
-  });
+    args: useV6 ? argsV6 : argsV5,
+  }) as `0x${string}`;
+  return { data, useV6, maxRotations, initialValidators, validUntil };
+}
 
-  // 4. Send via viem's wallet client so MetaMask signs and broadcasts.
-  const eth = getEthereum();
-  if (!eth) {
-    throw new Error("No injected wallet found. Install MetaMask to sign on-chain.");
+/**
+ * Wait for the EVM receipt of a broadcast hash, then walk the
+ * consensus contract logs to extract the actual `genlayerTxId`
+ * (the `txId` field of `NewTransaction` or `CreatedTransaction`).
+ *
+ * Returns the EVM hash unchanged when no matching event can be
+ * located, so the caller can decide whether to surface a hard
+ * error or fall back to polling with the EVM hash.
+ */
+export async function resolveGenlayerTxIdFromReceipt(
+  client: GenClient,
+  evmTxHash: string,
+  consensusAddress: string,
+): Promise<string> {
+  // 1. Wait for the EVM transaction to be mined. We use the
+  //    viem-shaped public client's `waitForTransactionReceipt`
+  //    with a generous retry budget — the EVM side seals within
+  //    a few blocks on Bradbury, but RPC throttling is the more
+  //    realistic cause of a slow first receipt.
+  const receipt = (await client.waitForTransactionReceipt({
+    hash: evmTxHash,
+    interval: 3000,
+    retries: 40,
+  })) as { status?: string; logs?: Array<Record<string, unknown>> } | null;
+  if (!receipt) {
+    throw new Error(
+      `EVM transaction ${evmTxHash} did not produce a receipt within the polling window.`,
+    );
   }
-  // Consensus contract address is a chain constant — studionet:
-  // 0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575. testnetBradbury:
-  // 0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575 (same). localnet
-  // uses 0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575. We hard-code
-  // it here to keep `loadChain` lightweight and avoid a deep import
-  // graph for what is in practice a constant.
-  const consensusAddr = getAddress(
-    "0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575" as `0x${string}`,
+  if (receipt.status === "0x0" || receipt.status === "reverted") {
+    throw new Error(
+      `EVM transaction ${evmTxHash} to consensus contract ${consensusAddress} reverted.`,
+    );
+  }
+  const logs = Array.isArray(receipt.logs) ? receipt.logs : [];
+  if (logs.length === 0) return evmTxHash;
+
+  // 2. Look up the consensus ABI for the active chain. We import
+  //    it lazily to keep the bundle small and to honour the
+  //    chain's own contract definitions (testnetBradbury exposes
+  //    `NewTransaction`; localnet exposes `CreatedTransaction`).
+  const chainsMod = (await import("genlayer-js/chains")) as Record<
+    string,
+    { consensusMainContract?: { address?: string; abi?: unknown } } | undefined
+  >;
+  // Pick the chain whose consensus address matches the receipt
+  // we just waited for. localnet / studionet share an address
+  // (0xb7278A61...) and only ship `NewTransaction`; Bradbury
+  // (0x0112Bf6e...) ships BOTH `NewTransaction` and
+  // `CreatedTransaction` (the V5 fallback event). Without the
+  // address match, the iteration would land on localnet and
+  // miss the `CreatedTransaction` ABI entirely.
+  let consensusAbi: unknown[] = [];
+  const target = consensusAddress.toLowerCase();
+  for (const candidate of Object.values(chainsMod)) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const candidateAddr = candidate.consensusMainContract?.address;
+    if (typeof candidateAddr === "string" && candidateAddr.toLowerCase() === target) {
+      const abi = candidate.consensusMainContract?.abi;
+      if (Array.isArray(abi)) {
+        consensusAbi = abi as unknown[];
+        break;
+      }
+    }
+  }
+  // Fallback: no chain matches the consensus address (older SDK
+  // build, or the chain module exposes a stripped shape). Walk
+  // every chain and prefer the one with the broader event set.
+  if (consensusAbi.length === 0) {
+    let best = 0;
+    for (const candidate of Object.values(chainsMod)) {
+      if (!candidate || typeof candidate !== "object") continue;
+      const abi = candidate.consensusMainContract?.abi;
+      if (Array.isArray(abi) && abi.length > best) {
+        consensusAbi = abi as unknown[];
+        best = abi.length;
+      }
+    }
+  }
+  // Strip nested tuples so viem's `parseEventLogs` sees a flat
+  // event ABI; both NewTransaction and CreatedTransaction on
+  // every supported chain only emit top-level primitive types.
+  const newTxEvent = (consensusAbi as Array<Record<string, unknown>>).find(
+    (item) => item && item.type === "event" && item.name === "NewTransaction",
   );
-  const wallet = createWalletClient({
-    account: sender,
-    chain: chain as unknown as Parameters<typeof createWalletClient>[0]["chain"],
-    transport: custom(eth),
-  });
-  const evmHash = await wallet.sendTransaction({
-    chain: chain as unknown as Parameters<typeof createWalletClient>[0]["chain"],
-    account: sender,
-    to: consensusAddr,
-    data,
-    value: opts.value ?? 0n,
-  });
-  opts.onPending?.();
-  console.log("[writeOnchain] sent transaction", { hash: evmHash });
-  // 5. Poll the receipt through the network until the transaction
-  //    reaches ACCEPTED. The SDK wrapper exposes
-  //    `waitForTransactionReceipt({ status: "ACCEPTED" })` which
-  //    resolves on any DECIDED state — for our purposes ACCEPTED is
-  //    the first terminal-ok stop; we then promote to FINALIZED
-  //    before letting dependent read calls execute.
-  const client = await createGenClient(config, opts.account);
-  const accepted = await pollForTerminal(client, evmHash, "ACCEPTED");
-  opts.onAccepted?.();
-  const finalized = await promoteToFinalized(client, evmHash, accepted);
-  opts.onFinalized?.();
-  return finalizeReceipt(evmHash, finalized);
+  const createdTxEvent = (consensusAbi as Array<Record<string, unknown>>).find(
+    (item) =>
+      item && item.type === "event" && item.name === "CreatedTransaction",
+  );
+
+  // 3. Parse the logs in priority order: NewTransaction is the
+  //    authoritative V6 event; CreatedTransaction is the V5/Studio
+  //    fallback used by older deployments.
+  //    The abi we pass here is a runtime-resolved fragment, not a
+  //    literal `as const`, so viem's generic type for the parsed
+  //    log tuple can't be narrowed at the call site. We cast the
+  //    result to a structural record and read `args.txId` — the
+  //    field is the same `bytes32` on every supported chain, and
+  //    the nullish-chain + typeof guard below guarantees we only
+  //    accept the value when viem actually decoded a non-empty
+  //    hex string.
+  const { parseEventLogs } = await import("viem");
+  if (newTxEvent) {
+    try {
+      const parsed = parseEventLogs({
+        abi: [newTxEvent],
+        eventName: "NewTransaction",
+        logs: logs as unknown as Parameters<typeof parseEventLogs>[0]["logs"],
+      }) as unknown as Array<{ args?: Record<string, unknown> }>;
+      const txId = parsed?.[0]?.args?.["txId"];
+      if (typeof txId === "string" && txId.length > 0) return txId;
+    } catch (err) {
+      console.warn(
+        "[writeOnchain] failed to parse NewTransaction event",
+        err,
+      );
+    }
+  }
+  if (createdTxEvent) {
+    try {
+      const parsed = parseEventLogs({
+        abi: [createdTxEvent],
+        eventName: "CreatedTransaction",
+        logs: logs as unknown as Parameters<typeof parseEventLogs>[0]["logs"],
+      }) as unknown as Array<{ args?: Record<string, unknown> }>;
+      const txId = parsed?.[0]?.args?.["txId"];
+      if (typeof txId === "string" && txId.length > 0) return txId;
+    } catch (err) {
+      console.warn(
+        "[writeOnchain] failed to parse CreatedTransaction event",
+        err,
+      );
+    }
+  }
+  return evmTxHash;
 }
 
 async function pollForTerminal(
   client: GenClient,
   hash: string,
   target: "ACCEPTED" | "FINALIZED",
+  maxAttempts = 80,
+  intervalMs = 3000,
 ): Promise<Record<string, unknown>> {
-  const maxAttempts = 80;
-  const intervalMs = 3000;
   let lastStatus = "UNKNOWN";
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let tx: unknown = null;
@@ -466,12 +747,14 @@ async function promoteToFinalized(
   client: GenClient,
   hash: string,
   accepted: Record<string, unknown>,
+  maxAttempts = 80,
+  intervalMs = 3000,
 ): Promise<Record<string, unknown>> {
   const status = String(
     (accepted.statusName as string) ?? (accepted.status as string) ?? "",
   );
   if (status === "FINALIZED") return accepted;
-  return pollForTerminal(client, hash, "FINALIZED");
+  return pollForTerminal(client, hash, "FINALIZED", maxAttempts, intervalMs);
 }
 
 function finalizeReceipt(hash: string, rec: Record<string, unknown>): OnchainReceipt {

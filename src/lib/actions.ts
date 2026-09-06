@@ -35,8 +35,13 @@ export type TxHooks = {
  * contract's `submit_dispute` returns `u256`; genlayer-js surfaces
  * `bigint` on the receipt payload, but we also accept number/string
  * fallbacks from older simulator builds.
+ *
+ * Exported so the wallet-adapter test suite can assert that the
+ * integer comes directly from the decoded receipt payload — never
+ * from a post-submit `next_id` / `get_registry_stats` view call
+ * raced against an in-flight transaction.
  */
-function extractDocketId(receipt: OnchainReceipt): number {
+export function extractDocketId(receipt: OnchainReceipt): number {
   const raw = receipt.payload;
   let n: number | bigint | null = null;
   if (typeof raw === "bigint") n = raw;
